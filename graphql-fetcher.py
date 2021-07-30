@@ -27,20 +27,56 @@ def _get_event_type(out_dict):
 
 def process_response(json_data, depth=2, single_values=False):
     """
+        process json response into a format that can be used for modeling.
 
-        
+        original:
+            "data": {
+                "userTransactions": [
+                {
+                    "amount": ,
+                    "id": ,
+                    "pool": {
+                        "id": ,
+                    }
+                    "reserve": {
+                        "id": ,
+                        "symbol": ,
+                    },
+                    "timestamp":,
+                    "user": {
+                        "id":
+                    }
+                }
+            }
+        }
+        processed:
+        {
+            "amount": ,
+            "pool_id": ,
+            "pool_lendingPool": ,
+            "reserve_id": ,
+            "reserve_symbol": ,
+            "timestamp": ,
+            "user_id": ,
+            "txn_id": ,
+            "event_type":
+        }
     """
     output = []
 
-    user_transactions = json_data["data"]["userTransactions"]  # list of dicts
+    # list of dicts
+    user_transactions = json_data["data"]["userTransactions"]  
 
     for data in user_transactions: 
+        
+        # flatten / de nest the data, two levels depth is sufficient here. 
         denested_data = _denest_data(data, depth, single_values=single_values)
 
+        # change id to transaction id
         txn_id = denested_data.pop("id")
         denested_data["txn_id"] = txn_id
 
-        # return event type string
+        # return event type string (borrow, repay, liquidation)
         event_type = _get_event_type(denested_data)
     
         # add the event type to the output dict
@@ -53,9 +89,21 @@ def process_response(json_data, depth=2, single_values=False):
 
 def _denest_data(data, target_depth, traversed_depth=0, initial_key=None, single_values=False):
     
+    """
+        Traverse the nested data and flatten. Bringing single values one level up by joining the lower level key to the keyname one level higher.
+        Example: 
+            pool: {
+                id: "value"
+            }
+        becomes:
+            {
+                pool_id: "value"
+            }
+    """
+
+    # lets us recursively call denest until we get to the depth we want. 
     if traversed_depth >= target_depth:
         return "...Truncated..." if single_values else data
-        #return data
 
     traversed_depth += 1
 
@@ -162,18 +210,13 @@ r"""query Query($userTransactionsOrderBy: UserTransaction_orderBy) {userTransact
 
 def graphql_query(query):
     """
-        pass query to graphql endpoint
+        Pass query to graphql endpoint and retrieve a json object.
     """
     url = 'https://api.thegraph.com/subgraphs/name/aave/protocol-multy-raw'
 
     headers = {'content-type': 'application/json'}
 
     r = requests.post(url, json={'query': query.replace('\n', '')}, headers=headers)
-    # grab example of original data: 
-    with open("./data/original_data.json", "wt") as f:
-        json.dump(r.json(), f, indent=2)
-
-    import sys; sys.exit()
     processed_data = process_response(r.json())
     return processed_data
     
@@ -228,8 +271,12 @@ def get_user_mapping(events):
     """
         get mapping of events to user key
         {
-        "user_id": [...],
-        "user_id": [...]
+            "user_id": [
+                {},{},{}
+            ],
+            "user_id": [
+                {},{},{}
+            ]
         }
     """
     user_mapping = {}
@@ -266,9 +313,9 @@ def get_test_data_mapping(test_data):
 
 def run_full_fetch():
     """
-        # fetch data from api and save to disk. (Run this if you need the data).
+        fetch data from api and save to disk.
     """
-    print(f"Data not found on disk. Retrieving all events from graphql api...")
+    print(f"Retrieving all events from graphql api...")
     all_events = grab_all_events()
     
     print(f"events retrieved, saving to disk")
@@ -279,7 +326,7 @@ def run_full_fetch():
 if __name__ == "__main__":
 
     # if the -fetch flag is set, fetch the data from the api
-    if sys.argv[1] == '-fetch':
+    if sys.argv[1] == '--fetch':
         run_full_fetch()
 
     # if data is already present on disk, skip running a full fetch.
@@ -290,6 +337,7 @@ if __name__ == "__main__":
         with open('./data/all_events.json') as f:
             all_events = json.load(f)
     else:
+        # if not data on disk, fetch the data from the api
         run_full_fetch()
         
 
