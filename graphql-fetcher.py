@@ -6,7 +6,9 @@ import random
 
 
 def _get_event_type(out_dict):
-
+    """
+        get the event type of an event based on keys present.
+    """
     keys = set(out_dict.keys())
 
     if "amountAfterFee" in keys:
@@ -65,11 +67,11 @@ def process_response(json_data, depth=2, single_values=False):
     output = []
 
     # list of dicts
-    user_transactions = json_data["data"]["userTransactions"]  
+    user_transactions = json_data["data"]["userTransactions"]
 
     for data in user_transactions: 
-        
-        # flatten / de nest the data, two levels depth is sufficient here. 
+
+        # flatten / de nest the data, two levels depth is sufficient here.
         denested_data = _denest_data(data, depth, single_values=single_values)
 
         # change id to transaction id
@@ -91,7 +93,7 @@ def _denest_data(data, target_depth, traversed_depth=0, initial_key=None, single
     
     """
         Traverse the nested data and flatten. Bringing single values one level up by joining the lower level key to the keyname one level higher.
-        Example: 
+        Example:
             pool: {
                 id: "value"
             }
@@ -101,7 +103,7 @@ def _denest_data(data, target_depth, traversed_depth=0, initial_key=None, single
             }
     """
 
-    # lets us recursively call denest until we get to the depth we want. 
+    # lets us recursively call denest until we get to the depth we want.
     if traversed_depth >= target_depth:
         return "...Truncated..." if single_values else data
 
@@ -110,22 +112,27 @@ def _denest_data(data, target_depth, traversed_depth=0, initial_key=None, single
     if isinstance(data, dict):
         output = {}
         for key, value in data.items():
+            # update the lower level key name to the higher level key name
             key_name = f"{initial_key}_{key}" if initial_key else key
-            if isinstance(value, (list, dict)):  # [{}, {}, ...] # [{}, {}, ...] # ""
+
+            # continue to denest recursively if we have any lists or dicts
+            if isinstance(value, (list, dict)):  # [{}, {}, ...] # [{}, {}, ...]
                 ret = _denest_data(value, target_depth, traversed_depth, initial_key=key_name, single_values=single_values)
             else:
                 ret = value
-
+            # after recusion we return all values found iterating at lower
+                                                    # levels to the output
             if isinstance(ret, dict):
                 output.update(ret)
             else:
                 output[key_name] = ret
-
+    # handle denesting lists passed to the function
     elif isinstance(data, list):
         output = []
         for item in data:
             ret = _denest_data(item, target_depth, traversed_depth, single_values=single_values)   
             output.append(ret)         
+    # handle single values
     else:
         output = data
         
