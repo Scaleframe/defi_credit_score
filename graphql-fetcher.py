@@ -332,14 +332,24 @@ def run_full_fetch():
 
 if __name__ == "__main__":
 
+    # check data directory
+    print("checking for data directory")
+    data_dir_name = '/data/'
+    data_dir = os.getcwd()+ "/data/"
+    if os.path.isdir(data_dir) is False:
+        print(f"creating data directory")
+        os.makedirs('./data')
+    else:
+        print("data directory found")
+
     # if the -fetch flag is set, fetch the data from the api
     if sys.argv[1] == '--fetch':
         run_full_fetch()
 
     # if data is already present on disk, skip running a full fetch.
     print("checking for event data on disk ...")
-    data = os.getcwd() + '/data/all_events.json' # get file location
-    if os.path.isfile(data): 
+    data_file = os.getcwd() + '/data/all_events.json' # get file location
+    if os.path.isfile(data_file):
         print("\"all_events.json\" found, loading from disk.")
         with open('./data/all_events.json') as f:
             all_events = json.load(f)
