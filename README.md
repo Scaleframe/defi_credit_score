@@ -89,6 +89,9 @@ To run the model, you will need to fetch the Aave smart contract transactions an
 
 `python graphql-fetcher.py`
 
+If you have data on disk the fetcher will load from there automatically. To force the fetcher to run a full fetch, add the --fetch option:
+
+`python graphql-fetcher.py --fetch`
 
 Build Features, Test Models, Find Feature Importance:
 
