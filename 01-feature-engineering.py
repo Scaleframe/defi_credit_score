@@ -81,7 +81,7 @@ def get_features_and_label (evs, timestamp):
         weighted_interest = wsum_interest / max(1.0, wsum)
 
 
-        # transaction features associated with this kind of event
+        # update averages, sums, nums, and weighted interest to feature map
         avg_past_events = sum_past_events/max(1.0, float(num_past_events))
         feats[typ + "_num"] = num_past_events
         if typ != "unknown":
@@ -91,6 +91,7 @@ def get_features_and_label (evs, timestamp):
         if typ == "borrow":
             feats["weighted_interest"] = weighted_interest
 
+    # update unique values for pools and reserves.
     feats["num_pools"] = len(pools)
     feats["num_reserves"] = len(reserves)
     feats["num_symbols"] = len(symbols)
