@@ -21,7 +21,7 @@ def get_features_and_label (evs, timestamp):
     near_evs = [e for e in fut_evs if e["timestamp"] <= timestamp + fut_window]
 
     # this is our training label, liquidation in the "near" future.
-    # careful note: 1 means "credit_ok", which means *no* near term liquidation. 
+    # careful note: 1 means "credit_ok", which means *no* near term liquidation.
     near_liqs = [e for e in near_evs if e["event_type"] == "liquidation_call"]
     credit_ok = 1 if len(near_liqs) == 0 else 0
 
@@ -43,7 +43,7 @@ def get_features_and_label (evs, timestamp):
     symbols = {}
 
     for typ in types:
-        # for each event type get sums, nums (counts), and averages 
+        # for each event type get sums, nums (counts), and averages
         num_past_events = 0
         sum_past_events = 0
 
@@ -65,15 +65,15 @@ def get_features_and_label (evs, timestamp):
                     sum_past_events += int(e[amnt])
                     break
 
-            # handle interest
-            # check borrows only for now
+            # handle interest (check borrows only for now)
             if typ != "borrow": continue
 
-            # change ray units to decimals
-            assert len(e["borrowRate"]) <= 27
-            rate = e["borrowRate"].rjust(27,"0")
+            # change ray units to decimals, ray is 27 decimals of precision:
+                # https://docs.aave.com/developers/v/1.0/developing-on-aave/important-considerations#ray-math
 
-            # sum numerator and denominator for calculating weighted avg interest
+            rate = float(e["borrowRate"])
+
+            # sum numerator and denominator for calculating weighted avg
             wsum_interest += rate * float(e["amount"])
             wsum += float(e["amount"])
 
@@ -108,8 +108,10 @@ if __name__ == "__main__":
     elif os.path.isfile(data_file) == False:
         raise FileNotFoundError("User mapping file \"all_user_mapping.json\" not present in data directory. Try running `graphql_fetcher.py` to retrieve and store the data.")
 
+    print("data successfully loaded from disk.")
     # build feature dict for all events for a given user in the user mapping
     for usr in users:
+        print(f"extracting features for user:{usr}...")
         evs = users[usr]
         evs.sort(key = lambda x: x["timestamp"])
 
@@ -118,8 +120,9 @@ if __name__ == "__main__":
             if ev["event_type"] != "borrow": continue
             feats = get_features_and_label(evs, ev["timestamp"])
 
+    print(f"\nfeatures extracted for all users successfully.\n")
+    print(f"\nfeature column example:\n{feats}")
 
-    print(f"feature columns: {feats}")
 
     # feature columns:
         # {'label': 1,
