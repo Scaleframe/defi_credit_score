@@ -1,3 +1,5 @@
+from io import RawIOBase
+import os
 import json
 
 
@@ -18,7 +20,8 @@ def get_features_and_label (evs, timestamp):
     fut_window = 90*24*60*60 # 90 days in seconds
     near_evs = [e for e in fut_evs if e["timestamp"] <= timestamp + fut_window]
 
-    # this is our training label, liquidation in the "near" future
+    # this is our training label, liquidation in the "near" future.
+    # careful note: 1 means "credit_ok", which means *no* near term liquidation. 
     near_liqs = [e for e in near_evs if e["event_type"] == "liquidation_call"]
     credit_ok = 1 if len(near_liqs) == 0 else 0
 
@@ -30,56 +33,63 @@ def get_features_and_label (evs, timestamp):
     # number and volume of past transactions by type
     types = "unknown deposit liquidation_call repay borrow".split()
 
-    # we'll use this to calculated a blended historical interest rate
-    wsum_interest = 0.0
-    wsum = 0.0
+    # use this to calculated a blended historical interest rate
+    wsum_interest = 0.0 # rate * amount (numerator for weighted avg)
+    wsum = 0.0 # sum of amounts (denominator for weighted avg)
 
-    # we'll track all the distinct pools and reservers and symbols
+    # track all the distinct pools and reservers and symbols
     pools = {}
     reserves = {}
     symbols = {}
 
     for typ in types:
+        # for each event type get sums, nums (counts), and averages 
         num_past_events = 0
         sum_past_events = 0
 
-    for e in past_evs:
-        if "pool_id" in e: pools[e["pool_id"]] = True
-        if "reserve_id" in e: reserves[e["reserve_id"]] = True
-        if "reserve_symbol" in e: symbols[e["reserve_symbol"]] = True
+        for e in past_evs:
+            # use for tracking distinct pool and reserve data
+            if "pool_id" in e: pools[e["pool_id"]] = True
+            if "reserve_id" in e: reserves[e["reserve_id"]] = True
+            if "reserve_symbol" in e: symbols[e["reserve_symbol"]] = True
 
-        if e["event_type"] != typ: continue
-        num_past_events += 1.0
+            # break early if past event doesnt match types we are aggregating
+            if e["event_type"] != typ: continue
 
-        # the key for the amount
-        for amnt in "amount amountAfterFee collateralAmount".split():
-            if amnt in e:
-                sum_past_events += int(e[amnt])
-                break
+            # add to count of past events
+            num_past_events += 1.0
 
-        # handle interest
-        if typ != "borrow": continue
+            # handle adding to sum of past events (ones that contain an "amount" value)
+            for amnt in "amount amountAfterFee collateralAmount".split():
+                if amnt in e:
+                    sum_past_events += int(e[amnt])
+                    break
 
-        # take the first 8 digits of the interest rate
-        assert len(e["borrowRate"]) <= 30
-        rate = e["borrowRate"].rjust(30,"0")
-        rate = int(rate[:8])
+            # handle interest
+            # check borrows only for now
+            if typ != "borrow": continue
 
-        wsum_interest += rate * float(e["amount"])
-        wsum += float(e["amount"])
+            # change ray units to decimals
+            assert len(e["borrowRate"]) <= 27
+            rate = e["borrowRate"].rjust(27,"0")
 
-    weighted_interest = wsum_interest / max(1.0, wsum)
+            # sum numerator and denominator for calculating weighted avg interest
+            wsum_interest += rate * float(e["amount"])
+            wsum += float(e["amount"])
+
+        # find blended interest rate with sums from past events
+        weighted_interest = wsum_interest / max(1.0, wsum)
 
 
-    # transaction features associated with this kind of event
-    avg_past_events = sum_past_events/max(1.0, float(num_past_events))
-    feats[typ + "_num"] = num_past_events
-    if typ != "unknown":
-        feats[typ + "_sum"] = sum_past_events
-        feats[typ + "_avg"] = avg_past_events
+        # transaction features associated with this kind of event
+        avg_past_events = sum_past_events/max(1.0, float(num_past_events))
+        feats[typ + "_num"] = num_past_events
+        if typ != "unknown":
+            feats[typ + "_sum"] = sum_past_events
+            feats[typ + "_avg"] = avg_past_events
 
-    if typ == "borrow":
-        feats["weighted_interest"] = weighted_interest
+        if typ == "borrow":
+            feats["weighted_interest"] = weighted_interest
 
     feats["num_pools"] = len(pools)
     feats["num_reserves"] = len(reserves)
@@ -89,13 +99,21 @@ def get_features_and_label (evs, timestamp):
 
 if __name__ == "__main__":
 
-    with open('./data/all_user_mapping.json') as f:
-        users = json.load(f)
+    print("checking for user mapping on disk ...")
+    data_file = os.getcwd() + '/data/all_user_mapping.json'
+    if os.path.isfile(data_file):
+        print("\"all_user_mapping.json\" found, loading from disk.")
+        with open("./data/all_user_mapping.json") as f:
+            users = json.load(f)
+    elif os.path.isfile(data_file) == False:
+        raise FileNotFoundError("User mapping file \"all_user_mapping.json\" not present in data directory. Try running `graphql_fetcher.py` to retrieve and store the data.")
 
-    for u in users:
-        evs = users[u]
+    # build feature dict for all events for a given user in the user mapping
+    for usr in users:
+        evs = users[usr]
         evs.sort(key = lambda x: x["timestamp"])
 
+        # get features and labels from borrow events
         for ev in evs:
             if ev["event_type"] != "borrow": continue
             feats = get_features_and_label(evs, ev["timestamp"])
