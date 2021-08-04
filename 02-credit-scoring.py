@@ -34,7 +34,8 @@ if __name__ == "__main__":
         evs = users[usr]
         evs.sort(key = lambda x: x["timestamp"])
 
-        # train / test split, use D as a ref pointer to Dtrain or Dtest dicts
+        # train / test split, randomly assign users to either train or test groups 
+                                # D points to Dtrain or Dtest depending on split
         if random.uniform(0,1) < train_frac:
             D = Dtrain
         else:
@@ -43,13 +44,12 @@ if __name__ == "__main__":
         for ev in evs:
             if ev["event_type"] != "borrow": continue
 
-            feats = get_features_and_label(evs, ev["timestamp"])
-
             # append lists of features to each key column from every event
              # D {
                 # label: [{event1} {event2}],
                 # feat1: [{event1}, {event1}]
              # }
+            feats = get_features_and_label(evs, ev["timestamp"])
             for fk in feats:
                 if fk not in D: D[fk] = [] # set default as a list
                 D[fk].append(float(feats[fk])) # update dict with list of values from each event
