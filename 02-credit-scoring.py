@@ -8,7 +8,7 @@ import importlib
 from sklearn.metrics import roc_auc_score
 
 # same as "from 01-feature-engineering import get_features_and_label"
-get_features_and_label = importlib.import_module('01_feature_engineering').get_features_and_label
+get_features_and_label = importlib.import_module('01-feature-engineering').get_features_and_label
 
 
 if __name__ == "__main__":
@@ -24,27 +24,37 @@ if __name__ == "__main__":
 
     print("data successfully loaded from disk.")
 
-
+    print("Running credit score predictions...")
     Dtrain = {}
     Dtest = {}
     train_frac = 0.66 # 2/3 of data used to train
 
     random.seed(1234)
-    for u in users:
-        evs = users[u]
+    for usr in users:
+        evs = users[usr]
         evs.sort(key = lambda x: x["timestamp"])
+
+        # train / test split, use D as a ref pointer to Dtrain or Dtest dicts
+        if random.uniform(0,1) < train_frac:
+            D = Dtrain
+        else:
+            D = Dtest
 
         for ev in evs:
             if ev["event_type"] != "borrow": continue
 
             feats = get_features_and_label(evs, ev["timestamp"])
+
+            # append lists of features to each key column from every event
+             # D {
+                # label: [{event1} {event2}],
+                # feat1: [{event1}, {event1}]
+             # }
             for fk in feats:
-                if fk not in D: D[fk] = []
-                D[fk].append(float(feats[fk]))
+                if fk not in D: D[fk] = [] # set default as a list
+                D[fk].append(float(feats[fk])) # update dict with list of values from each event
 
-        if random.uniform(0,1) < train_frac: D = Dtrain
-        else: D = Dtest
-
+    # create dataframes from the built up dicts
     df_tr = pd.DataFrame.from_dict(Dtrain)
     df_te = pd.DataFrame.from_dict(Dtest)
 
