@@ -5,7 +5,7 @@ This repo analyzes user behavior on blockchain based defi networks. It models cr
 
 This solution focuses on predicting a given user's probability of their loan being liquidated 3 months into the future, given their previous 6 months interactions with the lending pool. 
 
-This achieves an _ROC AUC score_ of .79 on Aave's smart contract transactions from 2020 and 2021. 
+This achieves an _ROC AUC score_ of .71 on Aave's smart contract transactions from 2020 and 2021. 
 
 ## Reproducing These Results
 
