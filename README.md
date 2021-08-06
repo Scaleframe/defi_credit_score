@@ -7,6 +7,37 @@ This solution focuses on predicting a given user's probability of their loan bei
 
 This achieves an _ROC AUC score_ of .79 on Aave's smart contract transactions from 2020 and 2021. 
 
+## Reproducing These Results
+
+Install Dependencies: In a new python environment, run:
+
+`pip install -r requirements.txt`
+
+To run the model, you will need to fetch the Aave smart contract transactions and save the data. Run:
+
+`python graphql-fetcher.py`
+
+If you have data on disk the fetcher will load from there automatically. To force the fetcher to run a full fetch, add the --fetch option:
+
+`python graphql-fetcher.py --fetch`
+
+Build Features, Test Models, Find Feature Importance:
+
+run the numbered python scripts in your favorite terminal / notebook to create features, analyze the data, and view predictions:
+
+`python 01-feature-engineering.py`
+
+`python 02-credit-scoring.py`
+
+`python 03-credit-scoring-aggressive-randomize.py`
+
+`python 04-feature-importance.py`
+
+## Solution Flow Notebook:
+
+You can also closely follow the solution flow of this repo and interact with the code yourself by using the `01-data-and-solution-flow-notebook.ipynb`. 
+
+You'll have to run `graphql-fetcher.py` either in a notebook or your favorite terminal to get your hands on the data that the notebook and scripts use. 
 
 ## The Problem: 
 
@@ -79,36 +110,6 @@ There are many ways to do this but let's use a cheap, low-tech, and easy to unde
 ## Results
 
 The model achieved a ROC AUC score of .79 on the test set.    
-
-## Reproducing These Results
-
-Install Dependencies: In a new python environment, run:
-
-`pip install -r requirements.txt`
-
-To run the model, you will need to fetch the Aave smart contract transactions and save the data. Run:
-
-`python graphql-fetcher.py`
-
-If you have data on disk the fetcher will load from there automatically. To force the fetcher to run a full fetch, add the --fetch option:
-
-`python graphql-fetcher.py --fetch`
-
-Build Features, Test Models, Find Feature Importance:
-
-run the numbered python scripts in your favorite terminal / notebook to create features, analyze the data, and view predictions:
-
-`python 01-feature-engineering.py`
-
-`python 02-credit-scoring.py`
-
-`python 03-credit-scoring-aggressive-randomize.py`
-
-`python 04-feature-importance.py`
-
-## Solution Flow Notebook:
-
-You can also closely follow the solution flow of this repo and interact with the code yourself by using the `01-data-and-solution-flow-notebook.ipynb`
 
 ## In This Repo:
 
