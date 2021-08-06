@@ -109,7 +109,7 @@ There are many ways to do this but let's use a cheap, low-tech, and easy to unde
 
 ## Results
 
-The model achieved a ROC AUC score of .79 on the test set.    
+The model achieved a ROC AUC score of .71 on the test set.    
 
 ## In This Repo:
 
