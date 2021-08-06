@@ -7,6 +7,7 @@ This solution focuses on predicting a given user's probability of their loan bei
 
 This achieves an _ROC AUC score_ of .79 on Aave's smart contract transactions from 2020 and 2021. 
 
+
 ## The Problem: 
 
 Currently in Defi, credit is heavily collteralized, meaning users can borrow a currency given they put down an equal amount or more as collateral. This is not only capital inefficient, but also misses the promise of defi; to provide widespread access to financing, regardless of a users background or access to traditional capital. 
@@ -105,6 +106,9 @@ run the numbered python scripts in your favorite terminal / notebook to create f
 
 `python 04-feature-importance.py`
 
+## Solution Flow Notebook:
+
+You can also closely follow the solution flow of this repo and interact with the code yourself by using the `01-data-and-solution-flow-notebook.ipynb`
 
 ## In This Repo:
 
